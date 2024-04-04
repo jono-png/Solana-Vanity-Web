@@ -34,8 +34,16 @@
 
 <script>
     function validatePrefix(prefix) {
-    const regex = /^[1-9A-HJ-NP-Za-km-z]{1,3}$/;
-    return regex.test(prefix);
+        const regex = /^[1-9A-HJ-NP-Za-km-z]{1,3}$/;
+        return regex.test(prefix);
+    }
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Private key copied to clipboard.');
+        }, (err) => {
+            console.error('Could not copy text: ', err);
+        });
     }
 
     function startGeneration() {
