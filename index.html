@@ -3,41 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <title>Solana Wallet Generator</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding-top: 20px; }
+        .container { max-width: 600px; }
+        .blur { filter: blur(8px); }
+        .blur:hover { filter: blur(0); cursor: pointer; }
+    </style>
 </head>
 <body>
-    <h1>Solana Wallet Generator</h1>
-    <input type="text" id="prefix" placeholder="Enter a 3-character prefix">
-    <button onclick="startGeneration()">Generate Wallet</button>
-    <pre id="logs"></pre>
+    <div class="container">
+        <h1 class="mb-4">Solana Wallet Generator</h1>
+        <div class="alert alert-info" role="alert">
+            These are the characters that can be used for the prefix:<br>
+            - The numbers "1" to "9"<br>
+            - The uppercase letters "A" to "Z" (excluding "I", "O")<br>
+            - The lowercase letters "a" to "z" (excluding "l")
+        </div>
+        <div class="form-group">
+            <input type="text" class="form-control" id="prefix" placeholder="Enter a 3-character prefix" aria-label="Prefix">
+        </div>
+        <button class="btn btn-primary" type="button" onclick="startGeneration()">Generate Wallet</button>
+        <div id="logs" class="mt-4 result"></div>
+        <div class="text-center mt-4">
+            <a href="https://github.com/jono-png/Solana-Vanity-Web" class="btn btn-dark" target="_blank" rel="noopener noreferrer">
+                Made with <span style="color: #e25555;">❤</span> by Jono
+            </a>
+        </div>
+    </div>    
 
-    <script>
-        function startGeneration() {
-            const prefix = document.getElementById('prefix').value;
-            fetch('http://localhost:8080/start-generation', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ prefix }),
-            })
-            .then(() => {
-                document.getElementById('logs').innerText = 'Generation started...';
-                checkLogs();
-            })
-            .catch(error => console.error('Error:', error));
-        }
+<script>
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Private key copied to clipboard.');
+        }, (err) => {
+            console.error('Could not copy text: ', err);
+        });
+    }
 
-        function checkLogs() {
-            fetch('http://localhost:8080/logs')
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('logs').innerText = data.logs.join('\n');
-                if (!data.logs.some(log => log.includes('Success'))) {
-                    setTimeout(checkLogs, 1000); // Poll every second
-                }
-            })
-            .catch(error => console.error('Error:', error));
+    function validatePrefix(prefix) {
+        const regex = /^[1-9A-HJ-NP-Za-km-z]{1,3}$/;
+        return regex.test(prefix);
+    }
+
+    function startGeneration() {
+    const prefix = document.getElementById('prefix').value;
+    if (!validatePrefix(prefix)) {
+        document.getElementById('logs').innerHTML = '<div class="alert alert-danger" role="alert">Invalid prefix.</div>';
+        return;
+    }
+
+    // Show a green box indicating the start of the generation process
+    document.getElementById('logs').innerHTML = '<div class="alert alert-success" role="alert">Started generating...</div>';
+
+    fetch(`http://localhost:8080/start-generation?prefix=${prefix}`, {
+        method: 'GET',
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-    </script>
+        return response.json();
+    })
+    .then(data => {
+        document.getElementById('logs').innerHTML = `<div class="alert alert-success" role="alert">Wallet generated successfully!</div>
+        <p><b>Wallet Address:</b> ${data.wallet}</p>
+        <p><b>Private Key:</b> <span class="blur" onclick="copyToClipboard('${data.privateKey}')" title="Click to copy">${data.privateKey}</span></p>
+        <p><b>Duration:</b> ${data.duration}</p>
+        <p><b>Attempts:</b> ${data.attempts}</p>`;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('logs').innerHTML = '<div class="alert alert-danger" role="alert">Error: ' + error.toString() + '</div>';
+    });
+}
+</script>
 </body>
 </html>
