@@ -4,11 +4,16 @@
     <meta charset="UTF-8">
     <title>Solana Wallet Generator</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body { padding-top: 20px; }
-        .container { max-width: 600px; }
+        .container { max-width: 600px; margin: 0 auto; } /* Center the container */
         .blur { filter: blur(8px); }
         .blur:hover { filter: blur(0); cursor: pointer; }
+        @media (max-width: 768px) {
+            body { padding-top: 10px; }
+            .container { padding: 0 15px; } /* Adjust padding for small devices */
+        }
     </style>
 </head>
 <body>
@@ -30,7 +35,7 @@
                 Made with <span style="color: #e25555;">❤</span> by Jono
             </a>
         </div>
-    </div>    
+    </div>   
 
 <script>
     function validatePrefix(prefix) {
