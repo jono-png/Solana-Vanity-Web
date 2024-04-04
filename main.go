@@ -1,84 +1,68 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
-	"strings"
-	"sync"
-	"sync/atomic"
-	"time"
-
-	"github.com/gagliardetto/solana-go"
-	"github.com/gin-gonic/gin"
+    "github.com/gin-gonic/gin"
+    "github.com/gagliardetto/solana-go"
+    "net/http"
+    "regexp"
+    "strings"
+    "sync/atomic"
+    "time"
 )
 
 var (
-	generatedCount    uint64
-	shouldStopThreads atomic.Bool
-	searchTerm        string
-	numThreads        = 16
-	logs              []string
-	logsMutex         sync.Mutex
+    generatedCount uint64
 )
 
-func addLog(log string) {
-	logsMutex.Lock()
-	defer logsMutex.Unlock()
-	logs = append(logs, log)
+func validatePrefix(prefix string) bool {
+    regex := regexp.MustCompile(`^[1-9A-HJ-NP-Za-km-z]+$`)
+    return regex.MatchString(prefix)
 }
 
-func generateWallet(searchTerm string, startTime time.Time) {
-	for !shouldStopThreads.Load() {
-		newWallet := solana.NewWallet()
-		pubKey := newWallet.PublicKey().String()
-		if strings.HasPrefix(pubKey, searchTerm) {
-			log := fmt.Sprintf("Success! Wallet found: %s\n", pubKey)
-			addLog(log)
-			shouldStopThreads.Store(true)
-			break
-		}
-		atomic.AddUint64(&generatedCount, 1)
-	}
-}
+func generateWallet(prefix string) (string, string, time.Duration) {
+    startTime := time.Now()
+    for {
+        newWallet := solana.NewWallet()
+        publicKey := newWallet.PublicKey().String()
+        if strings.HasPrefix(publicKey, prefix) {
+            duration := time.Since(startTime)
+            privateKeyStr := newWallet.PrivateKey.String()
 
-func isValidPrefix(prefix string) bool {
-	return len(prefix) <= 3 && strings.Trim(prefix, "A-HJ-NP-Za-km-z1-9") == ""
+            return publicKey, privateKeyStr, duration
+        }
+        atomic.AddUint64(&generatedCount, 1)
+    }
 }
 
 func main() {
-	router := gin.Default()
+    r := gin.Default()
 
-	router.POST("/start-generation", func(c *gin.Context) {
-		var json struct {
-			Prefix string `json:"prefix"`
-		}
-		if err := c.ShouldBindJSON(&json); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
-			return
-		}
-		searchTerm = json.Prefix
-		if !isValidPrefix(searchTerm) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid prefix"})
-			return
-		}
+    r.Use(func(c *gin.Context) {
+        c.Header("Access-Control-Allow-Origin", "*")
+        c.Header("Access-Control-Allow-Methods", "GET, OPTIONS")
+        c.Header("Access-Control-Allow-Headers", "Content-Type")
+        if c.Request.Method == "OPTIONS" {
+            c.AbortWithStatus(http.StatusOK)
+            return
+        }
+        c.Next()
+    })
 
-		shouldStopThreads.Store(false)
-		generatedCount = 0
-		logs = nil // reset logs
-		startTime := time.Now()
+    r.GET("/start-generation", func(c *gin.Context) {
+        prefix := c.Query("prefix")
+        if !validatePrefix(prefix) {
+            c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid prefix. Use 1-9, A-H, J-N, P-Z, a-k, m-z excluding 'I', 'O', 'l'."})
+            return
+        }
+        walletAddress, privateKey, duration := generateWallet(prefix)
+        c.JSON(http.StatusOK, gin.H{
+            "wallet":     walletAddress,
+            "privateKey": privateKey,
+            "duration":   duration.String(),
+            "attempts":   generatedCount,
+        })
+        atomic.StoreUint64(&generatedCount, 0) // Reset counter after use
+    })
 
-		for i := 0; i < numThreads; i++ {
-			go generateWallet(searchTerm, startTime)
-		}
-
-		c.JSON(http.StatusOK, gin.H{"message": "Generation started"})
-	})
-
-	router.GET("/logs", func(c *gin.Context) {
-		logsMutex.Lock()
-		defer logsMutex.Unlock()
-		c.JSON(http.StatusOK, gin.H{"logs": logs})
-	})
-
-	router.Run(":8080")
+    r.Run(":8080")
 }
