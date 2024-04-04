@@ -56,7 +56,7 @@
     // Show a green box indicating the start of the generation process
     document.getElementById('logs').innerHTML = '<div class="alert alert-success" role="alert">Started generating...</div>';
 
-    fetch(`http://localhost:8080/start-generation?prefix=${prefix}`, {
+    fetch(`https://solana-vanity-web.onrender.com/start-generation?prefix=${prefix}`, {
         method: 'GET',
     })
     .then(response => {
