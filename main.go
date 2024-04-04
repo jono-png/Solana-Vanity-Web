@@ -12,11 +12,11 @@ import (
 
 var (
     generatedCount uint64
+    validPrefix    = regexp.MustCompile(`^[1-9A-HJ-NP-Za-km-z]{1,2}$`)
 )
 
 func validatePrefix(prefix string) bool {
-    regex := regexp.MustCompile(`^[1-9A-HJ-NP-Za-km-z]+$`)
-    return regex.MatchString(prefix)
+    return validPrefix.MatchString(prefix)
 }
 
 func generateWallet(prefix string) (string, string, time.Duration) {
@@ -51,7 +51,7 @@ func main() {
     r.GET("/start-generation", func(c *gin.Context) {
         prefix := c.Query("prefix")
         if !validatePrefix(prefix) {
-            c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid prefix. Use 1-9, A-H, J-N, P-Z, a-k, m-z excluding 'I', 'O', 'l'."})
+            c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid prefix. Use 1-9, A-H, J-N, P-Z, a-k, m-z excluding 'I', 'O', 'l'. Prefix must be 1-2 characters long."})
             return
         }
         walletAddress, privateKey, duration := generateWallet(prefix)
