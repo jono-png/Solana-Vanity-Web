@@ -33,50 +33,50 @@
     </div>    
 
 <script>
-    function copyToClipboard(text) {
-        navigator.clipboard.writeText(text).then(() => {
-            alert('Private key copied to clipboard.');
-        }, (err) => {
-            console.error('Could not copy text: ', err);
+    function startGeneration() {
+        const prefix = document.getElementById('prefix').value;
+        if (!validatePrefix(prefix)) {
+            document.getElementById('logs').innerHTML = '<div class="alert alert-danger" role="alert">Invalid prefix.</div>';
+            return;
+        }
+
+        // Show a green box indicating the start of the generation process
+        document.getElementById('logs').innerHTML = '<div class="alert alert-success" role="alert">Started generating...</div>';
+
+        // Start a periodic task to update the count
+        const countInterval = setInterval(() => {
+            fetch(`https://solana-vanity-web.onrender.com/generation-count`, {
+                method: 'GET',
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('logs').innerHTML = `<div class="alert alert-success" role="alert">Generating... (${data.count} attempts so far)</div>`;
+            })
+            .catch(error => console.error('Error fetching count:', error));
+        }, 3000); // Update every 3 seconds
+
+        fetch(`https://solana-vanity-web.onrender.com/start-generation?prefix=${prefix}`, {
+            method: 'GET',
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            clearInterval(countInterval); // Stop the counter updates
+            document.getElementById('logs').innerHTML = `<div class="alert alert-success" role="alert">Wallet generated successfully!</div>
+            <p><b>Wallet Address:</b> ${data.wallet}</p>
+            <p><b>Private Key:</b> <span class="blur" onclick="copyToClipboard('${data.privateKey}')" title="Click to copy">${data.privateKey}</span></p>
+            <p><b>Duration:</b> ${data.duration}</p>
+            <p><b>Attempts:</b> ${data.attempts}</p>`;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('logs').innerHTML = '<div class="alert alert-danger" role="alert">Error: ' + error.toString() + '</div>';
         });
     }
-
-    function validatePrefix(prefix) {
-        const regex = /^[1-9A-HJ-NP-Za-km-z]{1,3}$/;
-        return regex.test(prefix);
-    }
-
-    function startGeneration() {
-    const prefix = document.getElementById('prefix').value;
-    if (!validatePrefix(prefix)) {
-        document.getElementById('logs').innerHTML = '<div class="alert alert-danger" role="alert">Invalid prefix.</div>';
-        return;
-    }
-
-    // Show a green box indicating the start of the generation process
-    document.getElementById('logs').innerHTML = '<div class="alert alert-success" role="alert">Started generating...</div>';
-
-    fetch(`https://solana-vanity-web.onrender.com/start-generation?prefix=${prefix}`, {
-        method: 'GET',
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        document.getElementById('logs').innerHTML = `<div class="alert alert-success" role="alert">Wallet generated successfully!</div>
-        <p><b>Wallet Address:</b> ${data.wallet}</p>
-        <p><b>Private Key:</b> <span class="blur" onclick="copyToClipboard('${data.privateKey}')" title="Click to copy">${data.privateKey}</span></p>
-        <p><b>Duration:</b> ${data.duration}</p>
-        <p><b>Attempts:</b> ${data.attempts}</p>`;
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        document.getElementById('logs').innerHTML = '<div class="alert alert-danger" role="alert">Error: ' + error.toString() + '</div>';
-    });
-}
 </script>
 </body>
 </html>
