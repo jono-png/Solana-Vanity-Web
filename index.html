@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Solana Wallet Generator</title>
+</head>
+<body>
+    <h1>Solana Wallet Generator</h1>
+    <input type="text" id="prefix" placeholder="Enter a 3-character prefix">
+    <button onclick="startGeneration()">Generate Wallet</button>
+    <pre id="logs"></pre>
+
+    <script>
+        function startGeneration() {
+            const prefix = document.getElementById('prefix').value;
+            fetch('http://localhost:8080/start-generation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ prefix }),
+            })
+            .then(() => {
+                document.getElementById('logs').innerText = 'Generation started...';
+                checkLogs();
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function checkLogs() {
+            fetch('http://localhost:8080/logs')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('logs').innerText = data.logs.join('\n');
+                if (!data.logs.some(log => log.includes('Success'))) {
+                    setTimeout(checkLogs, 1000); // Poll every second
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html>
