@@ -33,6 +33,11 @@
     </div>    
 
 <script>
+    function validatePrefix(prefix) {
+    const regex = /^[1-9A-HJ-NP-Za-km-z]{1,3}$/;
+    return regex.test(prefix);
+    }
+
     function startGeneration() {
         const prefix = document.getElementById('prefix').value;
         if (!validatePrefix(prefix)) {
