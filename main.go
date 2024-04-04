@@ -19,10 +19,6 @@ func validatePrefix(prefix string) bool {
     return regex.MatchString(prefix)
 }
 
-r.GET("/generation-count", func(c *gin.Context) {
-    c.JSON(http.StatusOK, gin.H{"count": generatedCount})
-})
-
 func generateWallet(prefix string) (string, string, time.Duration) {
     startTime := time.Now()
     for {
@@ -66,6 +62,10 @@ func main() {
             "attempts":   generatedCount,
         })
         atomic.StoreUint64(&generatedCount, 0)
+    })
+
+    r.GET("/generation-count", func(c *gin.Context) {
+        c.JSON(http.StatusOK, gin.H{"count": generatedCount})
     })
 
     r.Run(":8080")
