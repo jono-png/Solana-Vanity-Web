@@ -16,7 +16,7 @@ var (
 )
 
 func validatePrefix(prefix string) bool {
-    return validPrefix.MatchString(prefix)
+    return validPrefix.MatchString(prefix) && len(prefix) >= 1 && len(prefix) <= 2
 }
 
 func generateWallet(prefix string) (string, string, time.Duration) {
